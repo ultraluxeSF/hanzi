@@ -1,3 +1,9 @@
+/* Poppins with added pinyin tone letters (ǎ ǐ ǒ ǔ ǖ ǘ ǚ ǜ). OFL 1.1, see fonts/OFL.txt */
+@font-face { font-family: "Poppins Pinyin"; src: url("../fonts/PoppinsPinyin-400.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Poppins Pinyin"; src: url("../fonts/PoppinsPinyin-500.woff") format("woff"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Poppins Pinyin"; src: url("../fonts/PoppinsPinyin-600.woff") format("woff"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Poppins Pinyin"; src: url("../fonts/PoppinsPinyin-700.woff") format("woff"); font-weight: 700; font-style: normal; font-display: swap; }
+
 :root {
   --bg: #f6f4f0;
   --card: #ffffff;
@@ -13,7 +19,7 @@
   --t1: #e0413a; --t2: #2f9e5b; --t3: #2f6fdb; --t4: #8b4fd8; --t5: #8a847c;
   --radius: 18px;
   --hz-font: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
-  --ui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+  --ui-font: "Poppins Pinyin", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
 }
@@ -57,13 +63,13 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .top p { margin: 4px 0 0; }
 .brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .brand ruby { font-size: 34px; }
-.brand span { font-size: 20px; font-weight: 650; }
+.brand span { font-size: 20px; font-weight: 600; }
 .back { text-decoration: none; color: var(--muted); font-weight: 600; }
 
 /* Home */
 .hero { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; text-decoration: none; background: var(--accent); color: #fff; border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 6px 18px rgba(217, 58, 58, .25); }
 .hero-k { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .85; grid-column: 1; }
-.hero-t { font-size: 19px; font-weight: 650; grid-column: 1; }
+.hero-t { font-size: 19px; font-weight: 600; grid-column: 1; }
 .hero-go { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-weight: 700; }
 .due-banner { display: block; text-decoration: none; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; margin-bottom: 12px; font-weight: 600; }
 .module { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
@@ -88,7 +94,7 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 /* Cards & buttons */
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
 .kicker { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); font-weight: 700; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; padding: 13px 20px; font-weight: 650; text-decoration: none; background: var(--bg); min-height: 48px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; padding: 13px 20px; font-weight: 600; text-decoration: none; background: var(--bg); min-height: 48px; }
 .btn.primary { background: var(--accent); color: #fff; width: 100%; }
 .btn.ghost { background: var(--bg); border: 1px solid var(--line); }
 .btn.danger { background: var(--no-soft); color: var(--no); }
@@ -137,7 +143,7 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .wc-py { font-size: 24px; font-weight: 600; margin-top: 2px; }
 .wc-en { font-size: 20px; color: var(--muted); margin-top: 4px; }
 
-.q { font-size: 18px; font-weight: 650; margin: 0 0 14px; }
+.q { font-size: 18px; font-weight: 600; margin: 0 0 14px; }
 .q-card { text-align: center; }
 .q-card .play.big { margin: 6px auto 4px; }
 .prompt-hz { font-size: 52px; line-height: 1.7; margin: 4px 0; font-family: var(--hz-font); }
@@ -191,7 +197,7 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .done-card { text-align: center; padding: 32px 20px; }
 .done-mark { width: 76px; height: 76px; margin: 0 auto 14px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; }
 .done-mark svg { width: 40px; height: 40px; }
-.score { font-size: 48px; font-weight: 800; color: var(--accent); margin-top: 10px; }
+.score { font-size: 48px; font-weight: 700; color: var(--accent); margin-top: 10px; }
 .center-msg { text-align: center; padding: 60px 20px; display: grid; gap: 16px; justify-items: center; }
 
 /* Writer */
@@ -225,11 +231,11 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .chip.big { font-family: var(--hz-font); font-size: 30px; padding: 8px 18px; border-radius: 14px; }
 .char-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.letter { font-weight: 800; color: var(--accent); padding: 14px 6px 4px; font-size: 14px; }
+.letter { font-weight: 700; color: var(--accent); padding: 14px 6px 4px; font-size: 14px; }
 .d-row { display: grid; grid-template-columns: minmax(70px, auto) 1fr auto; align-items: center; gap: 14px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 6px; text-decoration: none; }
 .d-hz { font-size: 26px; line-height: 1.8; white-space: nowrap; }
 .d-mid { display: grid; min-width: 0; }
-.d-py { font-weight: 650; }
+.d-py { font-weight: 600; }
 .d-en { color: var(--muted); font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
 .d-tags { display: flex; gap: 6px; align-items: center; font-size: 16px; }
 .learned { color: var(--ok); font-size: 12px; }

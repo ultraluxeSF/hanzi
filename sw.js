@@ -1,6 +1,6 @@
 // Service worker: makes the app work offline.
 // Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v0.1.1';
+const VERSION = 'v0.1.2';
 const CACHE = `zhongwen-${VERSION}`;
 const SHELL = [
   './',
@@ -18,6 +18,10 @@ const SHELL = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
+  'fonts/PoppinsPinyin-400.woff',
+  'fonts/PoppinsPinyin-500.woff',
+  'fonts/PoppinsPinyin-600.woff',
+  'fonts/PoppinsPinyin-700.woff',
 ];
 
 self.addEventListener('install', e => {

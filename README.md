@@ -41,3 +41,6 @@ audio/                optional recorded mp3 files (audio/<hanzi>.mp3, listed in 
 
 Stroke data from [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) (Arphic Public License),
 packaged by [hanzi-writer-data](https://github.com/chanind/hanzi-writer-data).
+
+UI font: [Poppins](https://github.com/itfoundry/Poppins) (SIL Open Font License 1.1, see `fonts/OFL.txt`), extended here
+as "Poppins Pinyin" with the pinyin letters it lacks (ǎ ǐ ǒ ǔ ǖ ǘ ǚ ǜ), built from Poppins' own glyphs.
