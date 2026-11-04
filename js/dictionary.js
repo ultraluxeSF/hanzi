@@ -2,25 +2,25 @@
 // Course words are merged in automatically (see buildDictionary).
 
 export const TOPICS = [
-  ['greetings', 'Greetings & phrases', '👋'],
-  ['pronouns', 'Pronouns', '🙋'],
-  ['people', 'People & family', '👨‍👩‍👧'],
-  ['numbers', 'Numbers', '🔢'],
-  ['time', 'Time', '🕒'],
-  ['food', 'Food & drink', '🍜'],
-  ['animals', 'Animals', '🐼'],
-  ['technology', 'Technology', '📱'],
-  ['transport', 'Transport', '🚕'],
-  ['places', 'Places', '🏙️'],
-  ['countries', 'Countries', '🌏'],
-  ['colours', 'Colours', '🎨'],
-  ['body', 'Body', '✋'],
-  ['weather', 'Weather', '☀️'],
-  ['clothes', 'Clothes', '👕'],
-  ['verbs', 'Common verbs', '🏃'],
-  ['adjectives', 'Describing words', '✨'],
-  ['question words', 'Question words', '❓'],
-  ['grammar', 'Grammar words', '🧩'],
+  ['greetings', 'Greetings & phrases'],
+  ['pronouns', 'Pronouns'],
+  ['people', 'People & family'],
+  ['numbers', 'Numbers'],
+  ['time', 'Time'],
+  ['food', 'Food & drink'],
+  ['animals', 'Animals'],
+  ['technology', 'Technology'],
+  ['transport', 'Transport'],
+  ['places', 'Places'],
+  ['countries', 'Countries'],
+  ['colours', 'Colours'],
+  ['body', 'Body'],
+  ['weather', 'Weather'],
+  ['clothes', 'Clothes'],
+  ['verbs', 'Common verbs'],
+  ['adjectives', 'Describing words'],
+  ['question words', 'Question words'],
+  ['grammar', 'Grammar words'],
 ];
 
 const RAW = {
@@ -64,6 +64,7 @@ const RAW = {
 零 | líng | zero
 一 | yī | one
 二 | èr | two
+两 | liǎng | two (of something)
 三 | sān | three
 四 | sì | four
 五 | wǔ | five
@@ -75,7 +76,6 @@ const RAW = {
 百 | bǎi | hundred
 千 | qiān | thousand
 万 | wàn | ten thousand
-两 | liǎng | two (of something)
 `,
   time: `
 今天 | jīn tiān | today
@@ -311,13 +311,21 @@ export function dictionaryRaw() {
 }
 
 // Merge course words (they carry lessonId) with dictionary entries, de-duplicated by hanzi+pinyin.
+// Each word gets `ord` for the logical order: topic order, then course words (in the order they
+// are taught), then the topic's dictionary list in the order written above (e.g. numbers 0, 1, 2…).
 export function buildDictionary(courseWords) {
+  const topicIdx = Object.fromEntries(TOPICS.map(([id], i) => [id, i]));
   const map = new Map();
-  for (const w of dictionaryRaw()) map.set(w.hz + '|' + w.py, w);
-  for (const w of courseWords) {
+  courseWords.forEach((w, i) => map.set(w.hz + '|' + w.py, { ...w, ord: (topicIdx[w.topic] ?? 99) * 100000 + i }));
+  dictionaryRaw().forEach((w, i) => {
     const key = w.hz + '|' + w.py;
     const prev = map.get(key);
-    map.set(key, { ...(prev || {}), ...w, topic: w.topic || prev?.topic });
-  }
+    if (prev) {
+      // word appears in both: keep course data, but use the dictionary's logical position
+      map.set(key, { ...w, ...prev, topic: w.topic, ord: (topicIdx[w.topic] ?? 99) * 100000 + 50000 + i });
+    } else {
+      map.set(key, { ...w, ord: (topicIdx[w.topic] ?? 99) * 100000 + 50000 + i });
+    }
+  });
   return [...map.values()];
 }

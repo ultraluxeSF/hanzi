@@ -16,7 +16,13 @@ let STROKE_CHARS = new Set();
 fetch('data/chars/index.json').then(r => r.json()).then(list => { STROKE_CHARS = new Set(list); }).catch(() => {});
 
 const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const TURTLE = '<span class="slow-ico" aria-hidden="true">🐢</span>';
+const SLOW = '<span class="slow-ico">0.5×</span>';
+const ICON = {
+  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>',
+  pen: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
 
 function applySettings() {
   document.body.classList.toggle('tone-colors', !!store.state.settings.toneColors);
@@ -67,12 +73,12 @@ function playBtn(hz, { cls = '', label = '' } = {}) {
 }
 
 function slowBtn(hz) {
-  return `<button class="play slow" data-say="${escapeHtml(hz)}" data-slow="1" aria-label="Play slowly">${TURTLE}</button>`;
+  return `<button class="play slow" data-say="${escapeHtml(hz)}" data-slow="1" aria-label="Play slowly">${SLOW}</button>`;
 }
 
 view.addEventListener('click', e => {
   const b = e.target.closest('[data-say]');
-  if (b) { e.stopPropagation(); speak(b.dataset.say, b.dataset.slow ? { slow: true } : {}); }
+  if (b) { e.preventDefault(); e.stopPropagation(); speak(b.dataset.say, b.dataset.slow ? { slow: true } : {}); }
 });
 
 function wordsUpTo(lessonId) {
@@ -97,7 +103,7 @@ function renderHome() {
     <header class="top">
       <div>
         <h1 class="brand">${rubyHtml('中文', 'zhōng wén')} <span>Chinese from Zero</span></h1>
-        <p class="muted">${done} of ${total} lessons done${streakNow ? ` · 🔥 ${streakNow}-day streak` : ''}</p>
+        <p class="muted">${done} of ${total} lessons done${streakNow ? ` · ${streakNow}-day streak` : ''}</p>
       </div>
     </header>`;
 
@@ -107,14 +113,14 @@ function renderHome() {
       <span class="hero-t">Lesson ${next.id} · ${escapeHtml(next.title)}</span>
       <span class="hero-go">Go →</span></a>`;
   }
-  if (due) html += `<a class="due-banner" href="#/review">🔁 ${due} word${due > 1 ? 's' : ''} ready for review</a>`;
+  if (due) html += `<a class="due-banner" href="#/review">${due} word${due > 1 ? 's' : ''} ready for review</a>`;
 
   for (const m of MODULES) {
     const mDone = m.lessons.length && m.lessons.every(l => store.isDone(l.id));
     html += `<section class="module ${m.soon ? 'soon' : ''}">
       <div class="module-head">
         <span class="module-n">${m.id.slice(1)}</span>
-        <div><h2>${escapeHtml(m.title)} ${mDone ? '<span class="tick">✓</span>' : ''}</h2><p class="muted">${escapeHtml(m.goal)}</p></div>
+        <div><h2>${escapeHtml(m.title)} ${mDone ? `<span class="tick">${ICON.check}</span>` : ''}</h2><p class="muted">${escapeHtml(m.goal)}</p></div>
       </div>`;
     if (m.soon) {
       html += `<p class="soon-note">Coming soon</p>`;
@@ -124,7 +130,7 @@ function renderHome() {
         const isDone = store.isDone(l.id);
         const open = lessonUnlocked(l.id);
         const state = isDone ? 'done' : open ? 'open' : 'locked';
-        const icon = isDone ? '✓' : open ? '▶' : '🔒';
+        const icon = isDone ? ICON.check : open ? ICON.play : ICON.lock;
         const inner = `<span class="l-ico">${icon}</span><span class="l-id">${l.id}</span><span class="l-t">${escapeHtml(l.title)}</span>`;
         html += `<li class="${state}">${open ? `<a href="#/lesson/${l.id}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
       }
@@ -140,7 +146,7 @@ function renderLesson(id) {
   const lesson = lessonById(id);
   if (!lesson) { location.hash = '#/'; return; }
   if (!lessonUnlocked(id)) {
-    view.innerHTML = `<div class="center-msg"><p>🔒 Finish the previous lesson first.</p><a class="btn" href="#/">Back to lessons</a></div>`;
+    view.innerHTML = `<div class="center-msg"><p>Finish the previous lesson first.</p><a class="btn" href="#/">Back to lessons</a></div>`;
     return;
   }
   const steps = buildLessonSteps(lesson);
@@ -428,12 +434,12 @@ function writeStep(ch, note) {
         ${note ? `<p class="muted small">${escapeHtml(note)}</p>` : ''}
         <div class="writer-box"></div>
         <p class="w-status muted small">Watch the stroke order, then trace it.</p>
-        <div class="row-c"><button class="btn ghost" data-a="watch">▶ Watch</button><button class="btn ghost" data-a="trace">✍️ Trace</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div></div>`;
+        <div class="row-c"><button class="btn ghost" data-a="watch">${ICON.play} Watch</button><button class="btn ghost" data-a="trace">${ICON.pen} Trace</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div></div>`;
       const status = box.querySelector('.w-status');
       const writer = new Writer(box.querySelector('.writer-box'), ch, {
         onComplete: ({ mistakes }) => {
           store.wroteChar(ch);
-          status.textContent = mistakes ? `Done! ${mistakes} stroke${mistakes > 1 ? 's' : ''} needed another try.` : 'Perfect! 🎉';
+          status.textContent = mistakes ? `Done! ${mistakes} stroke${mistakes > 1 ? 's' : ''} needed another try.` : 'Perfect!';
           speak(ch);
           ctx.continueBtn('Continue');
         },
@@ -458,7 +464,7 @@ function dialogueStep(lines) {
     kind: 'info',
     render(box, ctx) {
       box.innerHTML = `<div class="card"><p class="kicker">Dialogue</p><p class="muted">Listen to the whole conversation, then tap each line to repeat it.</p>
-        <button class="btn ghost play-all">▶ Play all</button>
+        <button class="btn ghost play-all">${ICON.play} Play all</button>
         <ul class="dialogue">${lines.map(([who, s, en]) => {
           const t = parseSentence(s);
           return `<li class="who-${who}"><span class="who">${who}</span><div class="bubble" data-say="${escapeHtml(sentenceText(t))}"><div class="ex-zh">${sentenceRuby(t)}</div><div class="ex-en">${escapeHtml(en)}</div></div></li>`;
@@ -538,7 +544,7 @@ function runPlayer(steps, { title, onFinish, onAnswer }) {
     bar.style.width = '100%';
     foot.innerHTML = '';
     foot.className = 'p-foot';
-    body.innerHTML = `<div class="card done-card"><div class="big-emoji">🎉</div><h2>${res.lesson ? 'Lesson complete' : 'Review complete'}</h2>
+    body.innerHTML = `<div class="card done-card"><div class="done-mark">${ICON.check}</div><h2>${res.lesson ? 'Lesson complete' : 'Review complete'}</h2>
       <p class="muted">${escapeHtml(title || '')}</p>
       ${scoredTotal ? `<div class="score">${accuracy}%</div><p class="muted">right on the first try</p>` : ''}
       <div class="col-c">${res.next ? `<a class="btn primary" href="#/lesson/${res.next.id}">Next: ${res.next.id} ${escapeHtml(res.next.title)}</a>` : ''}
@@ -557,7 +563,7 @@ function renderReviewHome() {
   view.innerHTML = `<header class="top"><h1>Review</h1></header>
     <div class="card center">
       <div class="score">${due.length}</div><p class="muted">word${due.length === 1 ? '' : 's'} due now · ${learned.length} learned in total</p>
-      ${due.length ? `<a class="btn primary" href="#/session/due">Start review</a>` : `<p>Nothing due right now. Come back later 👍</p>`}
+      ${due.length ? `<a class="btn primary" href="#/session/due">Start review</a>` : `<p>Nothing due right now. Come back later.</p>`}
       ${learned.length ? `<a class="btn ghost" href="#/session/all">Practise all learned words</a>` : '<p class="muted small">Finish a lesson to start building your review deck.</p>'}
     </div>
     ${learned.length ? `<h2 class="section-t">Characters to write</h2><div class="char-chips">${[...new Set(allLessons().flatMap(l => store.isDone(l.id) ? l.write || [] : []))].map(c => `<a class="chip big" href="#/write/${encodeURIComponent(c)}">${c}</a>`).join('')}</div>` : ''}`;
@@ -573,15 +579,15 @@ function renderReviewSession(mode) {
 }
 
 // ---------- Dictionary ----------
-const dictState = { q: '', topic: '', sort: 'pinyin' };
+const dictState = { q: '', topic: '', sort: 'logical' };
 
 function renderDictionary() {
   const learned = new Set(store.learnedWordIds());
   view.innerHTML = `<header class="top"><h1>Dictionary</h1><p class="muted">${DICT.length} words</p></header>
     <div class="dict-tools">
       <input class="search" type="search" placeholder="Search: hanzi, pinyin or English" value="${escapeHtml(dictState.q)}" autocomplete="off" autocapitalize="off">
-      <div class="seg"><button data-sort="pinyin">A–Z (pinyin)</button><button data-sort="english">A–Z (English)</button></div>
-      <div class="topic-chips"><button class="chip" data-topic="">All</button>${TOPICS.map(([id, label, emo]) => `<button class="chip" data-topic="${id}">${emo} ${escapeHtml(label)}</button>`).join('')}</div>
+      <div class="seg"><button data-sort="logical">By topic</button><button data-sort="pinyin">A–Z pinyin</button><button data-sort="english">A–Z English</button></div>
+      <div class="topic-chips"><button class="chip" data-topic="">All</button>${TOPICS.map(([id, label]) => `<button class="chip" data-topic="${id}">${escapeHtml(label)}</button>`).join('')}</div>
     </div>
     <div class="dict-list"></div>`;
   const list = $('.dict-list', view);
@@ -593,18 +599,20 @@ function renderDictionary() {
     const qPlain = stripTones(q).replace(/\s+/g, '');
     let items = DICT.filter(w => !dictState.topic || w.topic === dictState.topic);
     if (q) items = items.filter(w => w.hz.includes(q) || w.en.toLowerCase().includes(q) || stripTones(w.py).replace(/\s+/g, '').includes(qPlain));
+    const logical = dictState.sort === 'logical';
     const key = w => (dictState.sort === 'english' ? w.en.toLowerCase().replace(/^(to|the|a) /, '') : stripTones(w.py).replace(/\s+/g, ''));
-    items.sort((a, b) => key(a).localeCompare(key(b)));
+    if (logical) items.sort((a, b) => a.ord - b.ord);
+    else items.sort((a, b) => key(a).localeCompare(key(b)));
     if (!items.length) { list.innerHTML = '<p class="muted center">No words found.</p>'; return; }
-    let html = '', letter = '';
+    let html = '', group = '';
     for (const w of items) {
-      const l = key(w)[0]?.toUpperCase() || '#';
-      if (l !== letter && !dictState.topic) { letter = l; html += `<div class="letter">${l}</div>`; }
       const t = TOPICS.find(t => t[0] === w.topic);
+      const g = logical ? (t ? escapeHtml(t[1]) : 'Other') : (key(w)[0]?.toUpperCase() || '#');
+      if (g !== group && !dictState.topic) { group = g; html += `<div class="letter${logical ? ' topic-h' : ''}">${g}</div>`; }
       html += `<a class="d-row" href="#/word/${encodeURIComponent(w.id)}">
         <span class="d-hz">${rubyHtml(w.hz, w.py)}</span>
         <span class="d-mid"><span class="d-py">${pinyinHtml(w.py)}</span><span class="d-en">${escapeHtml(w.en)}</span></span>
-        <span class="d-tags">${learned.has(w.id) ? '<span class="learned" title="Learned">●</span>' : ''}${t ? `<span title="${escapeHtml(t[1])}">${t[2]}</span>` : ''}</span>
+        <span class="d-tags">${learned.has(w.id) ? '<span class="learned" title="Learned">●</span>' : ''}${playBtn(w.hz, { cls: 'row-play' })}</span>
       </a>`;
     }
     list.innerHTML = html;
@@ -628,7 +636,7 @@ function renderWord(id) {
       <div class="wc-py">${pinyinHtml(w.py)}</div>
       <div class="wc-en">${escapeHtml(w.en)}</div>
       <div class="row-c">${playBtn(w.hz, { cls: 'big' })}${slowBtn(w.hz)}</div>
-      <p class="muted small">${t ? `${t[2]} ${escapeHtml(t[1])}` : ''}${lesson ? ` · taught in lesson ${lesson.id}` : ''}</p>
+      <p class="muted small">${t ? escapeHtml(t[1]) : ''}${lesson ? ` · taught in lesson ${lesson.id}` : ''}</p>
     </div>
     <h2 class="section-t">Write the characters</h2>
     <div class="char-chips">${chars.map(c => `<a class="chip big" href="#/write/${encodeURIComponent(c)}">${c}</a>`).join('')}</div>`;
@@ -642,11 +650,11 @@ function renderWritePractice(ch) {
       <div class="write-head"><span class="w-char">${rubyHtml(ch, w?.py || '')}</span>${playBtn(ch)}<span class="muted">${escapeHtml(w?.en || '')}</span></div>
       <div class="writer-box"></div>
       <p class="w-status muted small"></p>
-      <div class="row-c"><button class="btn ghost" data-a="watch">▶ Watch</button><button class="btn ghost" data-a="trace">✍️ Again</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div>
+      <div class="row-c"><button class="btn ghost" data-a="watch">${ICON.play} Watch</button><button class="btn ghost" data-a="trace">${ICON.pen} Again</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div>
     </div>`;
   const status = $('.w-status', view);
   const writer = new Writer($('.writer-box', view), ch, {
-    onComplete: ({ mistakes }) => { store.wroteChar(ch); speak(ch); status.textContent = mistakes ? `Done with ${mistakes} retr${mistakes > 1 ? 'ies' : 'y'}. Tap "Again" to repeat.` : 'Perfect! 🎉 Tap "Again" to repeat.'; },
+    onComplete: ({ mistakes }) => { store.wroteChar(ch); speak(ch); status.textContent = mistakes ? `Done with ${mistakes} retr${mistakes > 1 ? 'ies' : 'y'}. Tap "Again" to repeat.` : 'Perfect! Tap "Again" to repeat.'; },
     onStroke: ({ correct }) => { status.textContent = correct ? 'Good. Next stroke.' : 'Not quite: check the start point and direction.'; },
   });
   cleanup = () => writer.destroy();
@@ -702,7 +710,7 @@ function renderSettings() {
   });
   $('[data-act=import]', view).addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { store.importJSON(await f.text()); applySettings(); renderSettings(); toast('Progress imported ✓'); }
+    try { store.importJSON(await f.text()); applySettings(); renderSettings(); toast('Progress imported'); }
     catch { toast('That file is not a progress file'); }
   });
 }
@@ -726,7 +734,9 @@ function toast(msg) {
 
 // ---------- Service worker ----------
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) location.reload(); });
 }
 
 route();

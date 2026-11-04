@@ -71,14 +71,18 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .module-head { display: flex; gap: 12px; align-items: flex-start; }
 .module-head p { margin: 2px 0 0; font-size: 14px; }
 .module-n { flex: none; width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; }
-.tick { color: var(--ok); }
+.tick { color: var(--ok); display: inline-grid; vertical-align: middle; }
+.tick svg { width: 20px; height: 20px; }
 .soon-note { margin: 10px 0 0 46px; font-size: 14px; color: var(--muted); }
 .lessons { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
 .lessons li > a, .lessons li > div { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px; text-decoration: none; background: var(--bg); }
 .lessons li.open > a { background: var(--accent-soft); font-weight: 600; }
 .lessons li.locked { opacity: .5; }
-.l-ico { width: 22px; text-align: center; font-size: 14px; }
-.lessons li.done .l-ico { color: var(--ok); font-weight: 700; }
+.l-ico { width: 22px; height: 22px; display: grid; place-items: center; flex: none; }
+.l-ico svg { width: 16px; height: 16px; }
+.lessons li.open .l-ico { color: var(--accent); }
+.lessons li.locked .l-ico { color: var(--muted); }
+.lessons li.done .l-ico { color: var(--ok); }
 .l-id { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 28px; }
 
 /* Cards & buttons */
@@ -98,7 +102,9 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .play svg { width: 22px; height: 22px; }
 .play.big { width: 64px; height: 64px; }
 .play.big svg { width: 30px; height: 30px; }
-.play.slow { background: var(--bg); border: 1px solid var(--line); font-size: 22px; }
+.play.slow { background: var(--bg); border: 1px solid var(--line); color: var(--ink); }
+.slow-ico { font-size: 13px; font-weight: 700; }
+.play.big + .play.slow { width: 64px; height: 64px; }
 .section-t { margin: 22px 4px 10px; font-size: 18px; }
 
 /* Player */
@@ -183,7 +189,8 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .play-all { margin-top: 4px; }
 
 .done-card { text-align: center; padding: 32px 20px; }
-.big-emoji { font-size: 56px; }
+.done-mark { width: 76px; height: 76px; margin: 0 auto 14px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; }
+.done-mark svg { width: 40px; height: 40px; }
 .score { font-size: 48px; font-weight: 800; color: var(--accent); margin-top: 10px; }
 .center-msg { text-align: center; padding: 60px 20px; display: grid; gap: 16px; justify-items: center; }
 
@@ -226,6 +233,9 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .d-en { color: var(--muted); font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
 .d-tags { display: flex; gap: 6px; align-items: center; font-size: 16px; }
 .learned { color: var(--ok); font-size: 12px; }
+.play.row-play { width: 40px; height: 40px; }
+.play.row-play svg { width: 20px; height: 20px; }
+.letter.topic-h { color: var(--ink); font-size: 16px; padding-top: 18px; }
 
 /* Settings */
 .settings { display: grid; gap: 4px; padding: 8px 20px; }
