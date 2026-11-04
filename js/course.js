@@ -22,12 +22,13 @@ export const MODULES = [
         id: '0.1', kind: 'sounds', title: 'The four tones',
         intro: 'Mandarin has four tones plus a light "neutral" tone. The same syllable with a different tone is a different word.',
         tips: [
-          ['1st tone  ˉ', 'High and flat, like singing a long note: mā'],
-          ['2nd tone  ˊ', 'Rising, like asking "huh?": má'],
-          ['3rd tone  ˇ', 'Low, dipping down: mǎ'],
-          ['4th tone  ˋ', 'Falling sharply, like a command "No!": mà'],
-          ['Neutral', 'Short and light, no tone mark: ma'],
+          ['1st tone  ˉ', 'High and flat, like singing a long note: mā', 1],
+          ['2nd tone  ˊ', 'Rising, like asking "huh?": má', 2],
+          ['3rd tone  ˇ', 'Low, dipping down: mǎ', 3],
+          ['4th tone  ˋ', 'Falling sharply, like a command "No!": mà', 4],
+          ['Neutral', 'Short and light, no tone mark: ma', 5],
         ],
+        colorNote: 'Each tone has its own colour throughout the app: 1st red, 2nd green, 3rd blue, 4th purple, neutral grey.',
         sounds: [
           ['mā', '妈', 'mum'], ['má', '麻', 'hemp'], ['mǎ', '马', 'horse'], ['mà', '骂', 'to scold'], ['ma', '吗', 'question word'],
           ['shī', '诗', 'poem'], ['shí', '十', 'ten'], ['shǐ', '使', 'to use'], ['shì', '是', 'to be'],

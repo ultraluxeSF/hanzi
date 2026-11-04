@@ -33,6 +33,23 @@ export function pinyinHtml(py, { joined = false } = {}) {
   return syls.map(sylSpan).join(joined ? '' : ' ');
 }
 
+/** Escape text and colour every pinyin syllable that carries a tone mark. */
+export function colorizeText(text) {
+  return escapeHtml(text).replace(/[A-Za-z\u00C0-\u024F\u01CD-\u01DC]+/g, w => {
+    const t = toneOf(w);
+    return t === 5 ? w : `<span class="t${t}">${w}</span>`;
+  });
+}
+
+/** Small pitch-contour drawing for a tone (1–4, 5 = neutral). */
+export function toneContour(tone) {
+  const y = l => 26 - (l - 1) * 5.5; // pitch level 1 (low) … 5 (high)
+  const paths = { 1: `M4 ${y(5)} L40 ${y(5)}`, 2: `M4 ${y(3)} L40 ${y(5)}`, 3: `M4 ${y(2)} Q18 ${y(0)} 26 ${y(1)} T40 ${y(4)}`, 4: `M4 ${y(5)} L40 ${y(1)}` };
+  const grid = [1, 2, 3, 4, 5].map(l => `<line x1="2" x2="42" y1="${y(l)}" y2="${y(l)}" class="tc-grid"/>`).join('');
+  const mark = tone === 5 ? `<circle cx="22" cy="${y(2)}" r="3.2" fill="currentColor"/>` : `<path d="${paths[tone]}" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>`;
+  return `<svg class="tone-contour t${tone}" viewBox="0 0 44 30" aria-hidden="true">${grid}${mark}</svg>`;
+}
+
 /** Hanzi with pinyin above each character (ruby). Falls back to one ruby over the whole word. */
 export function rubyHtml(hz, py) {
   const chars = [...hz];

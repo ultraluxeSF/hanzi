@@ -136,6 +136,17 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .tips { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; margin: 16px 0 0; }
 .tips dt { font-weight: 700; white-space: nowrap; }
 .tips dd { margin: 0; color: var(--muted); }
+.tips dt, .tips dd { align-self: center; }
+.tone-dt { display: flex; align-items: center; gap: 10px; }
+.tone-dt span { color: var(--ink); }
+.tone-contour { width: 44px; height: 30px; flex: none; color: var(--t5); }
+.tone-colors .tone-contour.t1 { color: var(--t1); }
+.tone-colors .tone-contour.t2 { color: var(--t2); }
+.tone-colors .tone-contour.t3 { color: var(--t3); }
+.tone-colors .tone-contour.t4 { color: var(--t4); }
+.tone-contour .tc-grid { stroke: var(--line); stroke-width: 1; }
+.tone-colors .tips dd .t1, .tone-colors .tips dd .t2, .tone-colors .tips dd .t3, .tone-colors .tips dd .t4 { font-weight: 600; }
+.color-note { margin-top: 16px; }
 
 .word-card { text-align: center; padding: 30px 20px; }
 .wc-hz { font-size: 64px; line-height: 1.6; }
@@ -220,12 +231,33 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .switch input { width: 18px; height: 18px; accent-color: var(--accent); }
 
 /* Dictionary */
-.dict-tools { position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 6px 0 10px; display: grid; gap: 10px; }
+.dict-tools { position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 6px 0 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .search { width: 100%; padding: 13px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); font: inherit; color: inherit; -webkit-appearance: none; appearance: none; }
 .seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; width: max-content; }
 .seg button { border: 0; background: transparent; border-radius: 9px; padding: 7px 14px; font-weight: 600; font-size: 14px; color: var(--muted); }
 .seg button.on { background: var(--accent); color: #fff; }
-.topic-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+.chips-wrap { position: relative; margin: 0 -16px; min-width: 0; }
+.topic-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 16px; scroll-behavior: auto; overscroll-behavior-x: contain; }
+.topic-chips.dragging { cursor: grabbing; user-select: none; }
+.topic-chips.dragging .chip { pointer-events: none; }
+.chips-arrow { display: none; position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--ink); place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.chips-arrow svg { width: 18px; height: 18px; }
+.chips-arrow.left { left: 8px; }
+.chips-arrow.right { right: 8px; }
+.chips-wrap::before, .chips-wrap::after { content: ""; position: absolute; top: 0; bottom: 0; width: 56px; pointer-events: none; z-index: 1; opacity: 0; transition: opacity .2s; }
+.chips-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
+.chips-wrap::after { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
+@media (hover: hover) and (pointer: fine) {
+  .topic-chips { cursor: grab; }
+  .chips-arrow { display: grid; }
+  .chips-wrap::before, .chips-wrap::after { opacity: 1; }
+  .chips-wrap.at-start .chips-arrow.left, .chips-wrap.at-end .chips-arrow.right { display: none; }
+  .chips-wrap.at-start::before, .chips-wrap.at-end::after { opacity: 0; }
+}
+.topic-hits:empty { display: none; }
+.topic-hits { margin: 4px 0 6px; }
+.hits-label { margin: 6px 4px 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.topic-hit .muted { font-weight: 500; margin-left: 4px; }
 .topic-chips::-webkit-scrollbar { display: none; }
 .chip { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 99px; padding: 7px 14px; font-size: 14px; font-weight: 600; white-space: nowrap; text-decoration: none; }
 .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }

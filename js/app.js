@@ -3,7 +3,7 @@ import { TOPICS, buildDictionary } from './dictionary.js';
 import { store } from './storage.js';
 import { speak, chineseVoices, hasSpeech } from './audio.js';
 import { Writer } from './writer.js';
-import { rubyHtml, pinyinHtml, parseSentence, sentenceRuby, sentenceText, sentencePinyin, shuffle, sample, escapeHtml, stripTones } from './util.js';
+import { rubyHtml, pinyinHtml, colorizeText, toneContour, parseSentence, sentenceRuby, sentenceText, sentencePinyin, shuffle, sample, escapeHtml, stripTones } from './util.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -197,8 +197,12 @@ function buildLessonSteps(lesson) {
 
 function buildSoundSteps(lesson) {
   const steps = [];
-  steps.push(infoStep(`<p class="kicker">Sounds</p><h2>${escapeHtml(lesson.title)}</h2><p>${escapeHtml(lesson.intro)}</p>
-    <dl class="tips">${lesson.tips.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>`));
+  const tipRow = ([k, v, tone]) => tone
+    ? `<dt class="tone-dt t${tone}">${toneContour(tone)}<span>${escapeHtml(k)}</span></dt><dd>${colorizeText(v)}</dd>`
+    : `<dt>${colorizeText(k)}</dt><dd>${colorizeText(v)}</dd>`;
+  steps.push(infoStep(`<p class="kicker">Sounds</p><h2>${escapeHtml(lesson.title)}</h2><p>${colorizeText(lesson.intro)}</p>
+    <dl class="tips">${lesson.tips.map(tipRow).join('')}</dl>
+    ${lesson.colorNote ? `<p class="muted small color-note">${escapeHtml(lesson.colorNote)}</p>` : ''}`));
   steps.push(soundGridStep(lesson.sounds));
 
   const ex = [];
@@ -246,7 +250,7 @@ function buildSoundSteps(lesson) {
 
 function buildReviewLessonSteps(lesson) {
   const words = lesson.reviewOf.flatMap(id => (lessonById(id).words || []).map(w => toWord(w, id)));
-  const steps = [infoStep(`<p class="kicker">Review</p><h2>${escapeHtml(lesson.title)}</h2><p>${escapeHtml(lesson.intro)}</p>`)];
+  const steps = [infoStep(`<p class="kicker">Review</p><h2>${escapeHtml(lesson.title)}</h2><p>${colorizeText(lesson.intro)}</p>`)];
   const ex = sample(words, 10).map(w => mcqStep(randomWordQuestion(w, words)));
   ex.push(matchStep(sample(words, 4)));
   ex.push(matchStep(sample(words, 4)));
@@ -316,7 +320,7 @@ function patternStep(p) {
   return {
     kind: 'info',
     render(box, ctx) {
-      box.innerHTML = `<div class="card"><p class="kicker">Pattern</p><h2 class="pattern-t">${escapeHtml(p.title)}</h2><p>${escapeHtml(p.note)}</p>
+      box.innerHTML = `<div class="card"><p class="kicker">Pattern</p><h2 class="pattern-t">${escapeHtml(p.title)}</h2><p>${colorizeText(p.note)}</p>
         <ul class="examples">${p.examples.map(([s, en]) => {
           const t = parseSentence(s);
           return `<li><div class="ex-zh">${sentenceRuby(t)}</div><div class="ex-en">${escapeHtml(en)}</div>${playBtn(sentenceText(t))}</li>`;
@@ -431,7 +435,7 @@ function writeStep(ch, note) {
       const py = w && [...w.hz].length === 1 ? w.py : '';
       box.innerHTML = `<div class="card write-card"><p class="kicker">Write</p>
         <div class="write-head"><span class="w-char">${rubyHtml(ch, py)}</span>${playBtn(ch)}<span class="muted">${escapeHtml(w?.en || '')}</span></div>
-        ${note ? `<p class="muted small">${escapeHtml(note)}</p>` : ''}
+        ${note ? `<p class="muted small">${colorizeText(note)}</p>` : ''}
         <div class="writer-box"></div>
         <p class="w-status muted small">Watch the stroke order, then trace it.</p>
         <div class="row-c"><button class="btn ghost" data-a="watch">${ICON.play} Watch</button><button class="btn ghost" data-a="trace">${ICON.pen} Trace</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div></div>`;
@@ -583,22 +587,88 @@ const dictState = { q: '', topic: '', sort: 'logical' };
 
 function renderDictionary() {
   const learned = new Set(store.learnedWordIds());
+  const CHEV = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   view.innerHTML = `<header class="top"><h1>Dictionary</h1><p class="muted">${DICT.length} words</p></header>
     <div class="dict-tools">
-      <input class="search" type="search" placeholder="Search: hanzi, pinyin or English" value="${escapeHtml(dictState.q)}" autocomplete="off" autocapitalize="off">
+      <input class="search" type="search" placeholder="Search words or topics" value="${escapeHtml(dictState.q)}" autocomplete="off" autocapitalize="off">
       <div class="seg"><button data-sort="logical">By topic</button><button data-sort="pinyin">A–Z pinyin</button><button data-sort="english">A–Z English</button></div>
-      <div class="topic-chips"><button class="chip" data-topic="">All</button>${TOPICS.map(([id, label]) => `<button class="chip" data-topic="${id}">${escapeHtml(label)}</button>`).join('')}</div>
+      <div class="chips-wrap">
+        <button class="chips-arrow left" aria-label="Scroll topics left">${CHEV('M15 5l-7 7 7 7')}</button>
+        <div class="topic-chips"><button class="chip" data-topic="">All</button>${TOPICS.map(([id, label]) => `<button class="chip" data-topic="${id}">${escapeHtml(label)}</button>`).join('')}</div>
+        <button class="chips-arrow right" aria-label="Scroll topics right">${CHEV('M9 5l7 7-7 7')}</button>
+      </div>
     </div>
+    <div class="topic-hits"></div>
     <div class="dict-list"></div>`;
   const list = $('.dict-list', view);
+  const hits = $('.topic-hits', view);
+  const chips = $('.topic-chips', view);
+  const wrap = $('.chips-wrap', view);
+
+  // ----- topic row: mouse wheel, click-drag and arrow buttons for desktop -----
+  const updateArrows = () => {
+    const max = chips.scrollWidth - chips.clientWidth;
+    wrap.classList.toggle('at-start', chips.scrollLeft <= 2);
+    wrap.classList.toggle('at-end', chips.scrollLeft >= max - 2);
+  };
+  chips.addEventListener('scroll', updateArrows, { passive: true });
+  chips.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    if (chips.scrollWidth <= chips.clientWidth) return;
+    e.preventDefault();
+    chips.scrollLeft += e.deltaY;
+  }, { passive: false });
+  let drag = null, lastDragEnd = 0;
+  chips.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    drag = { x: e.clientX, left: chips.scrollLeft, moved: false };
+  });
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragEnd);
+  function onDragMove(e) {
+    if (!drag) return;
+    const dx = e.clientX - drag.x;
+    if (Math.abs(dx) > 4) { drag.moved = true; chips.classList.add('dragging'); }
+    if (drag.moved) chips.scrollLeft = drag.left - dx;
+  }
+  function onDragEnd() {
+    if (!drag) return;
+    const moved = drag.moved;
+    drag = null;
+    chips.classList.remove('dragging');
+    if (moved) lastDragEnd = Date.now();
+  }
+  cleanup = () => { window.removeEventListener('pointermove', onDragMove); window.removeEventListener('pointerup', onDragEnd); };
+  wrap.querySelector('.left').onclick = () => chips.scrollBy({ left: -chips.clientWidth * 0.7, behavior: 'smooth' });
+  wrap.querySelector('.right').onclick = () => chips.scrollBy({ left: chips.clientWidth * 0.7, behavior: 'smooth' });
+  const selectTopic = id => {
+    dictState.topic = id;
+    draw();
+    const chip = chips.querySelector(`[data-topic="${CSS.escape(id)}"]`);
+    if (chip) chips.scrollTo({ left: chip.offsetLeft - chips.clientWidth / 2 + chip.offsetWidth / 2, behavior: 'smooth' });
+  };
 
   function draw() {
     view.querySelectorAll('[data-sort]').forEach(b => b.classList.toggle('on', b.dataset.sort === dictState.sort));
-    view.querySelectorAll('[data-topic]').forEach(b => b.classList.toggle('on', b.dataset.topic === dictState.topic));
+    chips.querySelectorAll('[data-topic]').forEach(b => b.classList.toggle('on', b.dataset.topic === dictState.topic));
     const q = dictState.q.trim().toLowerCase();
     const qPlain = stripTones(q).replace(/\s+/g, '');
+
+    // topics whose name matches the search
+    const topicMatches = q.length >= 2 ? TOPICS.filter(([id, label]) => label.toLowerCase().includes(q) || id.includes(q)) : [];
+    const matchedIds = new Set(topicMatches.map(t => t[0]));
+    hits.innerHTML = topicMatches.length
+      ? `<p class="hits-label">Topics</p><div class="char-chips">${topicMatches.map(([id, label]) => {
+          const n = DICT.filter(w => w.topic === id).length;
+          return `<button class="chip topic-hit ${id === dictState.topic ? 'on' : ''}" data-hit="${id}">${escapeHtml(label)} <span class="muted">${n}</span></button>`;
+        }).join('')}</div>`
+      : '';
+
     let items = DICT.filter(w => !dictState.topic || w.topic === dictState.topic);
-    if (q) items = items.filter(w => w.hz.includes(q) || w.en.toLowerCase().includes(q) || stripTones(w.py).replace(/\s+/g, '').includes(qPlain));
+    if (q) {
+      items = items.filter(w => w.hz.includes(q) || w.en.toLowerCase().includes(q)
+        || stripTones(w.py).replace(/\s+/g, '').includes(qPlain) || matchedIds.has(w.topic));
+    }
     const logical = dictState.sort === 'logical';
     const key = w => (dictState.sort === 'english' ? w.en.toLowerCase().replace(/^(to|the|a) /, '') : stripTones(w.py).replace(/\s+/g, ''));
     if (logical) items.sort((a, b) => a.ord - b.ord);
@@ -620,8 +690,14 @@ function renderDictionary() {
 
   $('.search', view).addEventListener('input', e => { dictState.q = e.target.value; draw(); });
   view.querySelector('.seg').addEventListener('click', e => { const b = e.target.closest('[data-sort]'); if (b) { dictState.sort = b.dataset.sort; draw(); } });
-  view.querySelector('.topic-chips').addEventListener('click', e => { const b = e.target.closest('[data-topic]'); if (b) { dictState.topic = b.dataset.topic; draw(); } });
+  chips.addEventListener('click', e => { if (Date.now() - lastDragEnd < 80) return; const b = e.target.closest('[data-topic]'); if (b) selectTopic(b.dataset.topic); });
+  hits.addEventListener('click', e => {
+    const b = e.target.closest('[data-hit]'); if (!b) return;
+    dictState.q = ''; $('.search', view).value = '';
+    selectTopic(b.dataset.hit);
+  });
   draw();
+  requestAnimationFrame(updateArrows);
 }
 
 function renderWord(id) {
