@@ -35,11 +35,11 @@ function route() {
   if (cleanup) { cleanup(); cleanup = null; }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   const hash = location.hash.slice(1) || '/';
-  const [, page, arg] = hash.split('/');
+  const [, page, arg, arg2] = hash.split('/');
   const inLesson = page === 'lesson' || page === 'session';
   tabs.hidden = inLesson;
   document.body.classList.toggle('in-lesson', inLesson);
-  const tab = { word: 'dictionary', write: 'review', session: 'review', lesson: 'learn' }[page] || page || 'learn';
+  const tab = { word: 'dictionary', write: 'none', session: 'review', lesson: 'learn' }[page] || page || 'learn';
   for (const a of tabs.querySelectorAll('a')) a.classList.toggle('active', a.dataset.tab === tab);
   window.scrollTo(0, 0);
   const a = arg ? decodeURIComponent(arg) : '';
@@ -49,7 +49,7 @@ function route() {
     case 'session': return renderReviewSession(a);
     case 'dictionary': return renderDictionary();
     case 'word': return renderWord(a);
-    case 'write': return renderWritePractice(a);
+    case 'write': return renderWritePractice(a, Number(arg2) || 0);
     case 'settings': return renderSettings();
     default: return renderHome();
   }
@@ -715,22 +715,63 @@ function renderWord(id) {
       <p class="muted small">${t ? escapeHtml(t[1]) : ''}${lesson ? ` · taught in lesson ${lesson.id}` : ''}</p>
     </div>
     <h2 class="section-t">Write the characters</h2>
-    <div class="char-chips">${chars.map(c => `<a class="chip big" href="#/write/${encodeURIComponent(c)}">${c}</a>`).join('')}</div>`;
+    ${[...w.hz].length > 1 ? `<a class="btn primary write-word" href="#/write/${encodeURIComponent(w.hz)}/0">${ICON.pen} Write the whole word</a>` : ''}
+    <div class="char-chips">${chars.map(c => `<a class="chip big" href="#/write/${encodeURIComponent(w.hz)}/${[...w.hz].indexOf(c)}">${c}</a>`).join('')}</div>`;
   setTimeout(() => speak(w.hz), 200);
 }
 
-function renderWritePractice(ch) {
-  const w = DICT.find(x => x.hz === ch);
+// Write one character, or a whole word character by character (#/write/<text>/<index>).
+function renderWritePractice(text, idx = 0) {
+  const chars = [...text].filter(c => /[㐀-鿿]/.test(c));
+  if (!chars.length) { history.back(); return; }
+  const i = Math.min(Math.max(idx, 0), chars.length - 1);
+  const ch = chars[i];
+  const multi = chars.length > 1;
+  const word = DICT.find(x => x.hz === text);
+  const single = DICT.find(x => x.hz === ch);
+  const syls = (word?.py || '').split(/\s+/).filter(Boolean);
+  const chPy = single?.py || (syls.length === chars.length ? syls[i] : '');
+  const go = n => location.replace(`#/write/${encodeURIComponent(text)}/${n}`); // replace: Back still returns to the word
+
+  const progress = multi ? `<div class="w-progress">
+      <div class="w-word">${chars.map((c, k) => `<button class="w-step ${k === i ? 'cur' : ''} ${k < i ? 'done' : ''}" data-go="${k}">${rubyHtml(c, syls.length === chars.length ? syls[k] : '')}</button>`).join('')}</div>
+      <p class="muted small">Character ${i + 1} of ${chars.length}${word ? ` · ${escapeHtml(word.en)}` : ''}</p>
+    </div>` : '';
+
   view.innerHTML = `<header class="top"><a class="back" href="javascript:history.back()">← Back</a></header>
     <div class="card write-card">
-      <div class="write-head"><span class="w-char">${rubyHtml(ch, w?.py || '')}</span>${playBtn(ch)}<span class="muted">${escapeHtml(w?.en || '')}</span></div>
+      ${progress}
+      <div class="write-head"><span class="w-char">${rubyHtml(ch, chPy)}</span>${playBtn(ch)}<span class="muted">${escapeHtml(single?.en || (!multi ? word?.en || '' : ''))}</span></div>
       <div class="writer-box"></div>
       <p class="w-status muted small"></p>
       <div class="row-c"><button class="btn ghost" data-a="watch">${ICON.play} Watch</button><button class="btn ghost" data-a="trace">${ICON.pen} Again</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div>
+      ${multi ? `<div class="w-nav">
+        <button class="btn ghost" data-nav="prev" ${i === 0 ? 'disabled' : ''}>← Previous</button>
+        <button class="btn ghost" data-nav="next">${i === chars.length - 1 ? 'Finish' : 'Skip →'}</button>
+      </div>` : ''}
     </div>`;
+
   const status = $('.w-status', view);
+  const nextBtn = $('[data-nav=next]', view);
   const writer = new Writer($('.writer-box', view), ch, {
-    onComplete: ({ mistakes }) => { store.wroteChar(ch); speak(ch); status.textContent = mistakes ? `Done with ${mistakes} retr${mistakes > 1 ? 'ies' : 'y'}. Tap "Again" to repeat.` : 'Perfect! Tap "Again" to repeat.'; },
+    onComplete: ({ mistakes }) => {
+      store.wroteChar(ch);
+      speak(ch);
+      const how = mistakes ? `Done with ${mistakes} retr${mistakes > 1 ? 'ies' : 'y'}.` : 'Perfect!';
+      if (!multi) { status.textContent = `${how} Tap "Again" to repeat.`; return; }
+      $('.w-step.cur', view)?.classList.add('done');
+      if (i < chars.length - 1) {
+        status.textContent = `${how} Now the next character: ${chars[i + 1]}`;
+        nextBtn.textContent = `Next: ${chars[i + 1]} →`;
+      } else {
+        status.textContent = `${how} You wrote the whole word ${text}.`;
+        nextBtn.textContent = 'Finish';
+        setTimeout(() => speak(text), 700);
+      }
+      nextBtn.classList.remove('ghost');
+      nextBtn.classList.add('primary', 'pulse');
+      nextBtn.focus({ preventScroll: true });
+    },
     onStroke: ({ correct }) => { status.textContent = correct ? 'Good. Next stroke.' : 'Not quite: check the start point and direction.'; },
   });
   cleanup = () => writer.destroy();
@@ -739,9 +780,20 @@ function renderWritePractice(ch) {
   $('.row-c', view).addEventListener('click', e => {
     const a = e.target.closest('[data-a]')?.dataset.a;
     if (a === 'watch') writer.animate().then(() => writer.quiz());
-    if (a === 'trace') writer.quiz();
+    if (a === 'trace') { writer.quiz(); status.textContent = 'Trace it again.'; }
   });
   $('[data-a=outline]', view).addEventListener('change', e => writer.setOutline(e.target.checked));
+  if (multi) {
+    $('.w-nav', view).addEventListener('click', e => {
+      const n = e.target.closest('[data-nav]')?.dataset.nav;
+      if (n === 'prev' && i > 0) go(i - 1);
+      if (n === 'next') { if (i < chars.length - 1) go(i + 1); else history.back(); }
+    });
+    $('.w-word', view).addEventListener('click', e => {
+      const b = e.target.closest('[data-go]');
+      if (b && Number(b.dataset.go) !== i) go(Number(b.dataset.go));
+    });
+  }
 }
 
 // ---------- Settings ----------

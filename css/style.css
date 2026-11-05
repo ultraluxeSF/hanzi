@@ -227,6 +227,17 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
 .w-user line { stroke: var(--accent); stroke-linecap: round; }
 .w-user.wrong line { stroke: var(--no); }
 .writer.quiz { cursor: crosshair; }
+.w-progress { margin-bottom: 14px; }
+.w-word { display: flex; justify-content: center; gap: 8px; margin-bottom: 6px; }
+.w-step { border: 2px solid var(--line); background: var(--bg); border-radius: 12px; padding: 2px 10px; font-size: 28px; line-height: 1.8; color: var(--muted); }
+.w-step.cur { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.w-step.done { border-color: var(--ok); background: var(--ok-soft); color: var(--ink); }
+.w-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.w-nav .btn { width: 100%; }
+.write-word { margin: 0 0 12px; }
+.write-word svg { width: 18px; height: 18px; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+.btn.pulse { animation: pulse .9s ease-in-out 2; }
 .switch { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
 .switch input { width: 18px; height: 18px; accent-color: var(--accent); }
 
