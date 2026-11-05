@@ -1,6 +1,6 @@
 // Service worker: makes the app work offline.
 // Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v0.1.4';
+const VERSION = 'v0.1.5';
 const CACHE = `zhongwen-${VERSION}`;
 const SHELL = [
   './',

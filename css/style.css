@@ -317,3 +317,16 @@ rt { font-family: var(--ui-font); font-size: 0.42em; font-weight: 500; letter-sp
   .writer-box { width: min(100%, 520px); }
   .p-foot.fb { margin: 0; border-radius: 20px; margin-bottom: 12px; }
 }
+
+/* Pull to refresh (installed app) */
+.ptr { position: fixed; top: calc(var(--safe-t) - 44px); left: 50%; transform: translateX(-50%); width: 40px; height: 40px; border-radius: 50%; background: var(--card); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0,0,0,.12); display: grid; place-items: center; color: var(--muted); opacity: 0; z-index: 30; pointer-events: none; transition: opacity .2s; }
+.ptr svg { width: 20px; height: 20px; }
+.ptr.ready { color: var(--accent); }
+.ptr.spin { opacity: 1 !important; transform: translate(-50%, 90px) !important; }
+.ptr.spin svg { animation: ptr-spin .8s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+
+/* Writer controls */
+.w-controls { flex-wrap: wrap; }
+.skip-anim { width: 100%; order: -1; }
+.skip-anim[hidden] { display: none; }

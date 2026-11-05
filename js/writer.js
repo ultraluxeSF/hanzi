@@ -137,18 +137,39 @@ export class Writer {
     return new Promise(res => { anim.onfinish = () => res(p); });
   }
 
-  /** Play the whole character stroke by stroke. */
+  /** Play the whole character stroke by stroke. Resolves true if it played to the end, false if skipped. */
   async animate({ speed = 1 } = {}) {
     await this.ready;
     this.stopQuiz();
     this.clearDone();
     this.animating = (this.animating || 0) + 1;
     const token = this.animating;
+    this.setAnimating(true);
     for (let i = 0; i < this.data.strokes.length; i++) {
-      if (token !== this.animating) return;
+      if (token !== this.animating) return false;
       await this.animateStroke(i, { speed });
+      if (token !== this.animating) return false;
       await new Promise(r => setTimeout(r, 120 / speed));
     }
+    if (token !== this.animating) return false;
+    this.setAnimating(false);
+    return true;
+  }
+
+  setAnimating(on) {
+    this.isAnimating = on;
+    if (on && !this.skipHandler) {
+      // touching the canvas during the animation skips it and starts tracing straight away
+      this.skipHandler = e => { if (this.isAnimating) { this.skipAnimation(); this.onDown(e); } };
+      this.svg.addEventListener('pointerdown', this.skipHandler);
+    }
+    this.opts.onMode?.(on ? 'animating' : 'idle');
+  }
+
+  /** Stop the animation and go straight to tracing. */
+  skipAnimation() {
+    if (!this.data) return;
+    this.startQuiz();
   }
 
   fillStroke(i, cls = 'w-filled') {
@@ -159,13 +180,18 @@ export class Writer {
   /** Start tracing mode. */
   async quiz() {
     await this.ready;
+    this.startQuiz();
+  }
+
+  startQuiz() {
     this.animating = (this.animating || 0) + 1; // cancel animation
+    if (this.isAnimating) { this.isAnimating = false; }
     this.stopQuiz();
     this.clearDone();
+    this.svg.classList.remove('complete');
     this.current = 0;
     this.mistakes = 0;
     this.strokeMistakes = 0;
-    this.penSeen = false;
     this.activePointer = null;
     this.svg.classList.add('quiz');
     this.handlers = {
@@ -177,6 +203,7 @@ export class Writer {
     this.svg.addEventListener('pointermove', this.handlers.move);
     this.svg.addEventListener('pointerup', this.handlers.up);
     this.svg.addEventListener('pointercancel', this.handlers.up);
+    this.opts.onMode?.('tracing');
   }
 
   stopQuiz() {
@@ -197,6 +224,7 @@ export class Writer {
   }
 
   onDown(e) {
+    if (!this.handlers) return;
     if (e.pointerType === 'pen') this.penSeen = true;
     if (this.penSeen && e.pointerType === 'touch') return; // palm rejection
     if (this.activePointer !== null || this.current >= this.data.strokes.length) return;

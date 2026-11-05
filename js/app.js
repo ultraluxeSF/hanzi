@@ -9,6 +9,8 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
 const tabs = $('#tabs');
 
+export const APP_VERSION = 'v0.1.5'; // keep in sync with VERSION in sw.js
+
 const COURSE_WORDS = courseWords();
 const DICT = buildDictionary(COURSE_WORDS);
 const WORD_BY_ID = new Map([...DICT, ...COURSE_WORDS].map(w => [w.id, w]));
@@ -427,6 +429,32 @@ function buildStep(sentence, en, pool) {
   };
 }
 
+/** Shared controls for a writing canvas: auto-play (optional), Skip, Watch, Again, Outline. */
+function bindWriterUI(root, writer, status, { onMissing } = {}) {
+  const skip = root.querySelector('[data-a=skip]');
+  writer.opts.onMode = mode => {
+    skip.hidden = mode !== 'animating';
+    if (mode === 'animating') status.textContent = 'Watch the stroke order, or tap Skip (or just start writing).';
+    if (mode === 'tracing') status.textContent = 'Now trace it, stroke by stroke.';
+  };
+  const watch = () => writer.animate().then(done => { if (done) writer.quiz(); });
+  writer.ready.then(() => (store.state.settings.autoAnimate !== false ? watch() : writer.quiz()))
+    .catch(() => { status.textContent = 'Stroke data is not available for this character yet.'; onMissing?.(); });
+  root.querySelector('.row-c').addEventListener('click', e => {
+    const a = e.target.closest('[data-a]')?.dataset.a;
+    if (a === 'watch') watch();
+    if (a === 'trace') writer.quiz();
+    if (a === 'skip') writer.skipAnimation();
+  });
+  root.querySelector('[data-a=outline]').addEventListener('change', e => writer.setOutline(e.target.checked));
+}
+
+const WRITER_CONTROLS = (againLabel = 'Again') => `<div class="row-c w-controls">
+  <button class="btn primary skip-anim" data-a="skip" hidden>Skip animation</button>
+  <button class="btn ghost" data-a="watch">${ICON.play} Watch</button>
+  <button class="btn ghost" data-a="trace">${ICON.pen} ${againLabel}</button>
+  <label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div>`;
+
 function writeStep(ch, note) {
   return {
     kind: 'write',
@@ -437,8 +465,8 @@ function writeStep(ch, note) {
         <div class="write-head"><span class="w-char">${rubyHtml(ch, py)}</span>${playBtn(ch)}<span class="muted">${escapeHtml(w?.en || '')}</span></div>
         ${note ? `<p class="muted small">${colorizeText(note)}</p>` : ''}
         <div class="writer-box"></div>
-        <p class="w-status muted small">Watch the stroke order, then trace it.</p>
-        <div class="row-c"><button class="btn ghost" data-a="watch">${ICON.play} Watch</button><button class="btn ghost" data-a="trace">${ICON.pen} Trace</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div></div>`;
+        <p class="w-status muted small"></p>
+        ${WRITER_CONTROLS('Trace')}</div>`;
       const status = box.querySelector('.w-status');
       const writer = new Writer(box.querySelector('.writer-box'), ch, {
         onComplete: ({ mistakes }) => {
@@ -450,14 +478,7 @@ function writeStep(ch, note) {
         onStroke: ({ correct }) => { if (!correct) status.textContent = 'Not quite: try that stroke again (start point and direction matter).'; else status.textContent = 'Good. Next stroke.'; },
       });
       ctx.addCleanup(() => writer.destroy());
-      writer.ready.then(async () => { await writer.animate(); writer.quiz(); status.textContent = 'Now trace it, stroke by stroke.'; })
-        .catch(() => { status.textContent = 'Stroke data not available for this character.'; ctx.continueBtn(); });
-      box.querySelector('.row-c').addEventListener('click', e => {
-        const a = e.target.closest('[data-a]')?.dataset.a;
-        if (a === 'watch') writer.animate().then(() => writer.quiz());
-        if (a === 'trace') writer.quiz();
-      });
-      box.querySelector('[data-a=outline]').addEventListener('change', e => writer.setOutline(e.target.checked));
+      bindWriterUI(box, writer, status, { onMissing: () => ctx.continueBtn() });
       ctx.skipBtn();
     },
   };
@@ -744,7 +765,7 @@ function renderWritePractice(text, idx = 0) {
       <div class="write-head"><span class="w-char">${rubyHtml(ch, chPy)}</span>${playBtn(ch)}<span class="muted">${escapeHtml(single?.en || (!multi ? word?.en || '' : ''))}</span></div>
       <div class="writer-box"></div>
       <p class="w-status muted small"></p>
-      <div class="row-c"><button class="btn ghost" data-a="watch">${ICON.play} Watch</button><button class="btn ghost" data-a="trace">${ICON.pen} Again</button><label class="switch"><input type="checkbox" checked data-a="outline"> Outline</label></div>
+      ${WRITER_CONTROLS('Again')}
       ${multi ? `<div class="w-nav">
         <button class="btn ghost" data-nav="prev" ${i === 0 ? 'disabled' : ''}>← Previous</button>
         <button class="btn ghost" data-nav="next">${i === chars.length - 1 ? 'Finish' : 'Skip →'}</button>
@@ -775,14 +796,7 @@ function renderWritePractice(text, idx = 0) {
     onStroke: ({ correct }) => { status.textContent = correct ? 'Good. Next stroke.' : 'Not quite: check the start point and direction.'; },
   });
   cleanup = () => writer.destroy();
-  writer.ready.then(async () => { await writer.animate(); writer.quiz(); status.textContent = 'Now trace it.'; })
-    .catch(() => { status.textContent = 'Stroke data is not available for this character yet.'; });
-  $('.row-c', view).addEventListener('click', e => {
-    const a = e.target.closest('[data-a]')?.dataset.a;
-    if (a === 'watch') writer.animate().then(() => writer.quiz());
-    if (a === 'trace') { writer.quiz(); status.textContent = 'Trace it again.'; }
-  });
-  $('[data-a=outline]', view).addEventListener('change', e => writer.setOutline(e.target.checked));
+  bindWriterUI(view, writer, status);
   if (multi) {
     $('.w-nav', view).addEventListener('click', e => {
       const n = e.target.closest('[data-nav]')?.dataset.nav;
@@ -803,6 +817,7 @@ function renderSettings() {
   view.innerHTML = `<header class="top"><h1>Settings</h1></header>
     <div class="card settings">
       <label class="set-row"><span>Colour pinyin by tone<small>1 red · 2 green · 3 blue · 4 purple</small></span><input type="checkbox" data-k="toneColors" ${s.toneColors ? 'checked' : ''}></label>
+      <label class="set-row"><span>Play stroke animation first<small>Off: go straight to writing (you can still tap Watch)</small></span><input type="checkbox" data-k="autoAnimate" ${s.autoAnimate !== false ? 'checked' : ''}></label>
       <label class="set-row"><span>Slow audio by default</span><input type="checkbox" data-k="slowAudio" ${s.slowAudio ? 'checked' : ''}></label>
       <label class="set-row"><span>Open all lessons<small>Skip the step-by-step lock</small></span><input type="checkbox" data-k="unlockAll" ${s.unlockAll ? 'checked' : ''}></label>
       <label class="set-row col"><span>Chinese voice</span>
@@ -817,6 +832,10 @@ function renderSettings() {
       <label class="btn ghost">Import progress<input type="file" accept="application/json,.json" hidden data-act="import"></label>
       <button class="btn danger" data-act="reset">Reset progress</button></div>
     </div>
+    <h2 class="section-t">App</h2>
+    <div class="card settings">
+      <div class="set-row"><span>Version ${APP_VERSION}<small>Pull down on any main screen to refresh, or tap here</small></span><button class="btn ghost small" data-act="reload" type="button">Reload app</button></div>
+    </div>
     <p class="muted small credits">Stroke data: <a href="https://github.com/skishore/makemeahanzi" target="_blank" rel="noopener">Make Me a Hanzi</a> (Arphic Public License) via hanzi-writer-data. Audio: your device's Chinese voice.</p>`;
 
   view.querySelectorAll('[data-k]').forEach(inp => inp.addEventListener('change', () => {
@@ -824,7 +843,7 @@ function renderSettings() {
     applySettings();
   }));
   $('.test-voice', view).onclick = () => speak('你好');
-  view.addEventListener('click', e => {
+  const onClick = e => {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'export') {
       const blob = new Blob([store.exportJSON()], { type: 'application/json' });
@@ -834,11 +853,14 @@ function renderSettings() {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
-    if (act === 'reset' && confirmInline(e.target.closest('[data-act]'))) { store.reset(); applySettings(); renderSettings(); }
-  });
+    if (act === 'reload') refreshApp();
+    if (act === 'reset' && confirmInline(e.target.closest('[data-act]'))) { store.reset(); applySettings(); cleanup?.(); renderSettings(); }
+  };
+  view.addEventListener('click', onClick);
+  cleanup = () => view.removeEventListener('click', onClick);
   $('[data-act=import]', view).addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { store.importJSON(await f.text()); applySettings(); renderSettings(); toast('Progress imported'); }
+    try { store.importJSON(await f.text()); applySettings(); cleanup?.(); renderSettings(); toast('Progress imported'); }
     catch { toast('That file is not a progress file'); }
   });
 }
@@ -859,6 +881,59 @@ function toast(msg) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2400);
 }
+
+// ---------- Refresh (button + pull-to-refresh in the installed app) ----------
+async function refreshApp() {
+  document.body.classList.add('refreshing');
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) {
+      await reg.update();
+      const sw = reg.installing || reg.waiting;
+      if (sw) {
+        // wait (max 6 s) for the new version to take over, so the reload shows it
+        await new Promise(res => {
+          const t = setTimeout(res, 6000);
+          sw.addEventListener('statechange', () => { if (sw.state === 'activated') { clearTimeout(t); res(); } });
+        });
+      }
+    }
+  } catch { /* offline: just reload from cache */ }
+  location.reload();
+}
+
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+(function pullToRefresh() {
+  const THRESHOLD = 80;
+  const ind = document.createElement('div');
+  ind.className = 'ptr';
+  ind.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  document.body.appendChild(ind);
+  let startY = null, pull = 0;
+  const blocked = el => el.closest('.writer, .player, .topic-chips, input, select, textarea');
+  window.addEventListener('touchstart', e => {
+    if (!isStandalone() || window.scrollY > 0 || e.touches.length !== 1 || blocked(e.target)) { startY = null; return; }
+    startY = e.touches[0].clientY; pull = 0;
+  }, { passive: true });
+  window.addEventListener('touchmove', e => {
+    if (startY === null) return;
+    pull = Math.max(0, e.touches[0].clientY - startY);
+    if (pull > 0 && window.scrollY <= 0) {
+      const d = Math.min(pull * 0.5, THRESHOLD + 20);
+      ind.style.transform = `translate(-50%, ${d}px) rotate(${pull * 2}deg)`;
+      ind.style.opacity = Math.min(1, pull / THRESHOLD);
+      ind.classList.toggle('ready', pull * 0.5 >= THRESHOLD * 0.75);
+    }
+  }, { passive: true });
+  window.addEventListener('touchend', () => {
+    if (startY === null) return;
+    const go = pull * 0.5 >= THRESHOLD * 0.75;
+    startY = null;
+    if (go) { ind.classList.add('spin'); refreshApp(); return; }
+    ind.style.transform = ''; ind.style.opacity = 0; ind.classList.remove('ready');
+  });
+})();
 
 // ---------- Service worker ----------
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
